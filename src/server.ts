@@ -310,7 +310,7 @@ async function generateWithOpenAI(instructions: string, documents: string[]): Pr
 async function generateWithGemini(instructions: string, documents: string[], apiKey: string): Promise<GanttChartData> {
     const prompt = buildPrompt(instructions, documents);
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -323,7 +323,7 @@ async function generateWithGemini(instructions: string, documents: string[], api
             }],
             generationConfig: {
                 temperature: 0.7,
-                maxOutputTokens: 2048,
+                maxOutputTokens: 4096,
             }
         })
     });
