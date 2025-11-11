@@ -71,6 +71,13 @@ app.get('/', (req: Request, res: Response) => {
         }
         h1 { color: #333; margin-bottom: 10px; }
         p { color: #666; margin-bottom: 30px; }
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            margin-top: 20px;
+        }
         textarea {
             width: 100%;
             min-height: 150px;
@@ -79,7 +86,45 @@ app.get('/', (req: Request, res: Response) => {
             border-radius: 4px;
             font-size: 14px;
             font-family: inherit;
+            margin-bottom: 10px;
+        }
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: 4px;
+            padding: 30px;
+            text-align: center;
             margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .file-upload:hover {
+            border-color: #2196f3;
+            background: #f0f8ff;
+        }
+        .file-upload.dragover {
+            border-color: #2196f3;
+            background: #e3f2fd;
+        }
+        #fileInput {
+            display: none;
+        }
+        .file-list {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .file-item {
+            background: #f5f5f5;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .remove-file {
+            color: #f44336;
+            cursor: pointer;
+            font-weight: bold;
         }
         button {
             background: #2196f3;
@@ -90,11 +135,13 @@ app.get('/', (req: Request, res: Response) => {
             font-size: 16px;
             cursor: pointer;
             font-weight: 600;
+            width: 100%;
         }
         button:hover { background: #1976d2; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-        .loading { display: none; margin-top: 20px; color: #666; }
+        .loading { display: none; margin-top: 20px; color: #666; text-align: center; }
         .error { color: #f44336; margin-top: 20px; }
+        .hint { font-size: 12px; color: #999; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -102,16 +149,83 @@ app.get('/', (req: Request, res: Response) => {
         <h1>🎯 AI Gantt Chart Generator</h1>
         <p>Generate beautiful project timelines using AI</p>
         
-        <label for="instructions"><strong>Project Instructions:</strong></label>
-        <textarea id="instructions" placeholder="Example: Create a 10-week software development project with planning, design, development, testing, and launch phases"></textarea>
+        <label for="instructions">📋 Project Instructions:</label>
+        <textarea id="instructions" placeholder="Example: Create a 10-week software development project with planning, design, development, testing, and launch phases. Analyze the attached research documents to determine specific tasks and timelines."></textarea>
+        <div class="hint">Describe your project and reference any documents you upload below</div>
+        
+        <label>📄 Research Documents (Optional):</label>
+        <div class="file-upload" id="dropZone">
+            <p>📎 Click to select files or drag and drop</p>
+            <p style="font-size: 12px; color: #999; margin-top: 5px;">Supports: .txt, .md, .pdf, .docx</p>
+        </div>
+        <input type="file" id="fileInput" multiple accept=".txt,.md,.pdf,.doc,.docx">
+        <div class="file-list" id="fileList"></div>
         
         <button onclick="generate()">Generate Chart</button>
         
-        <div class="loading" id="loading">Generating your chart... ⏳</div>
+        <div class="loading" id="loading">🤖 AI is analyzing your documents and generating your chart... ⏳</div>
         <div class="error" id="error"></div>
     </div>
 
     <script>
+        let selectedFiles = [];
+        
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        
+        // Click to select files
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        function handleFiles(files) {
+            selectedFiles = Array.from(files);
+            displayFiles();
+        }
+        
+        function displayFiles() {
+            fileList.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = \`
+                    <span>📄 \${file.name} (\${formatFileSize(file.size)})</span>
+                    <span class="remove-file" onclick="removeFile(\${index})">✕</span>
+                \`;
+                fileList.appendChild(fileItem);
+            });
+        }
+        
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            displayFiles();
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        
         async function generate() {
             const instructions = document.getElementById('instructions').value;
             const button = document.querySelector('button');
@@ -119,7 +233,7 @@ app.get('/', (req: Request, res: Response) => {
             const error = document.getElementById('error');
             
             if (!instructions.trim()) {
-                error.textContent = 'Please enter instructions';
+                error.textContent = '❌ Please enter project instructions';
                 return;
             }
             
@@ -128,13 +242,27 @@ app.get('/', (req: Request, res: Response) => {
             error.textContent = '';
             
             try {
+                // Read file contents
+                const documents = [];
+                for (const file of selectedFiles) {
+                    const text = await readFileAsText(file);
+                    documents.push(text);
+                }
+                
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ instructions, format: 'html' })
+                    body: JSON.stringify({ 
+                        instructions, 
+                        documents,
+                        format: 'html' 
+                    })
                 });
                 
-                if (!response.ok) throw new Error('Generation failed');
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.message || 'Generation failed');
+                }
                 
                 const html = await response.text();
                 
@@ -144,11 +272,20 @@ app.get('/', (req: Request, res: Response) => {
                 newWindow.document.close();
                 
             } catch (err) {
-                error.textContent = 'Error: ' + err.message;
+                error.textContent = '❌ Error: ' + err.message;
             } finally {
                 button.disabled = false;
                 loading.style.display = 'none';
             }
+        }
+        
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(new Error('Failed to read file: ' + file.name));
+                reader.readAsText(file);
+            });
         }
     </script>
 </body>
