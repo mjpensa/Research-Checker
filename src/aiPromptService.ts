@@ -6,7 +6,11 @@ export class AIPromptService {
      * Generates a comprehensive prompt for the LLM to create Gantt chart data
      */
     public generatePrompt(userInstructions: string, documentContents: string[], templateImage?: string): string {
+        const intervalHint = this.detectIntervalFromPrompt(userInstructions);
+        
         return `You are an expert project manager creating a Gantt chart. Based on the provided research documents and user instructions, generate a structured project timeline.
+
+${intervalHint}
 
 TEMPLATE REFERENCE:
 The Gantt chart should maintain this exact visual style:
@@ -44,21 +48,32 @@ You must respond with ONLY valid JSON matching this exact structure (no addition
   ]
 }
 
-CRITICAL RULES FOR TIME INTERVAL SELECTION:
-1. You MUST intelligently determine the appropriate time interval based on the project horizon
+CRITICAL RULES FOR TIME INTERVAL SELECTION (FOLLOW EXACTLY):
+1. The "interval" field is MANDATORY and determines how the timeline is displayed
 2. Choose "interval" value from: "week", "month", or "year"
-3. INTERVAL SELECTION GUIDELINES:
-   - Use "week" for projects spanning up to 6 months (1-26 intervals)
-   - Use "month" for projects spanning 6 months to 3 years (6-36 intervals)
-   - Use "year" for projects spanning more than 3 years (3-20 intervals)
-4. If user explicitly mentions duration (e.g., "10 years", "6 months", "8 weeks"), use that to determine interval
-5. If no explicit duration, infer from:
-   - Keywords like "long-term", "strategic" → likely months or years
-   - Mentions of "quarters", "fiscal year" → months
-   - Short project phases → weeks
-   - Research phases, product development cycles → analyze complexity
-6. The "totalWeeks" field represents the total number of intervals (despite the name)
-7. The startWeek and endWeek fields represent interval positions (despite the names)
+3. INTERVAL SELECTION LOGIC (STRICTLY ENFORCE):
+   
+   IF project mentions years (e.g., "2020 to 2030", "10 years", "5-year plan"):
+      → SET interval = "year"
+      → SET totalWeeks = number of years (e.g., 10 for 2020-2030)
+   
+   ELSE IF project mentions months (e.g., "18 months", "6-month timeline"):
+      → SET interval = "month"
+      → SET totalWeeks = number of months
+   
+   ELSE IF project mentions weeks OR is short-term (< 6 months):
+      → SET interval = "week"
+      → SET totalWeeks = number of weeks
+
+4. EXAMPLES TO FOLLOW:
+   - "Project from 2020 to 2030" → interval: "year", totalWeeks: 11 (2020,2021...2030)
+   - "10-year transformation" → interval: "year", totalWeeks: 10
+   - "18-month development" → interval: "month", totalWeeks: 18
+   - "8-week sprint" → interval: "week", totalWeeks: 8
+
+5. IMPORTANT: The "totalWeeks" field name is misleading - it actually holds the TOTAL NUMBER OF INTERVALS
+6. IMPORTANT: startWeek and endWeek represent the interval position numbers (1, 2, 3, etc.)
+7. DO NOT default to "week" - analyze the user's request carefully for time indicators
 
 ADDITIONAL RULES:
 1. Analyze the documents to identify key project phases and tasks
@@ -155,6 +170,57 @@ Generate the Gantt chart data now:`;
                 }
             }
         }
+    }
+
+    /**
+     * Detects the appropriate interval from the user's prompt
+     */
+    private detectIntervalFromPrompt(userInstructions: string): string {
+        const lowerInstructions = userInstructions.toLowerCase();
+        
+        // Check for year indicators
+        const yearPatterns = [
+            /(\d+)\s*-?\s*year/i,
+            /\b(20\d{2})\s+to\s+(20\d{2})/i,
+            /\b(20\d{2})\s*-\s*(20\d{2})/i,
+            /decade/i,
+            /long-?term/i,
+            /strategic/i
+        ];
+        
+        for (const pattern of yearPatterns) {
+            if (pattern.test(lowerInstructions)) {
+                return '⚠️ DETECTED: This appears to be a MULTI-YEAR project. You MUST set interval="year"';
+            }
+        }
+        
+        // Check for month indicators
+        const monthPatterns = [
+            /(\d+)\s*-?\s*month/i,
+            /quarter/i,
+            /fiscal\s+year/i
+        ];
+        
+        for (const pattern of monthPatterns) {
+            if (pattern.test(lowerInstructions)) {
+                return '⚠️ DETECTED: This appears to be a MONTHLY project. You MUST set interval="month"';
+            }
+        }
+        
+        // Check for week indicators
+        const weekPatterns = [
+            /(\d+)\s*-?\s*week/i,
+            /sprint/i,
+            /iteration/i
+        ];
+        
+        for (const pattern of weekPatterns) {
+            if (pattern.test(lowerInstructions)) {
+                return '⚠️ DETECTED: This appears to be a WEEKLY project. You MUST set interval="week"';
+            }
+        }
+        
+        return '';
     }
 
     /**
