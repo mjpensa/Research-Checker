@@ -224,6 +224,90 @@ Generate the Gantt chart data now:`;
     }
 
     /**
+     * Corrects the interval if AI didn't detect it properly
+     * This is a fallback to ensure user's explicit time indicators are respected
+     */
+    private correctIntervalIfNeeded(data: GanttChartData, userInstructions: string): GanttChartData {
+        const lowerInstructions = userInstructions.toLowerCase();
+        
+        // Check for year range patterns (e.g., "2020 to 2030", "2020-2030")
+        const yearRangeMatch = lowerInstructions.match(/\b(20\d{2})\s*(?:to|-)\s*(20\d{2})/i);
+        if (yearRangeMatch) {
+            const startYear = parseInt(yearRangeMatch[1]);
+            const endYear = parseInt(yearRangeMatch[2]);
+            const totalYears = endYear - startYear + 1;
+            
+            if (data.interval !== 'year') {
+                console.warn(`AI used interval="${data.interval}" but user specified year range. Correcting to "year"`);
+                data.interval = 'year';
+                
+                // Adjust totalWeeks if it doesn't match the year range
+                if (data.totalWeeks !== totalYears) {
+                    console.warn(`Adjusting totalWeeks from ${data.totalWeeks} to ${totalYears} to match year range ${startYear}-${endYear}`);
+                    
+                    // Scale tasks proportionally
+                    const scale = totalYears / data.totalWeeks;
+                    data.phases.forEach(phase => {
+                        phase.tasks.forEach(task => {
+                            task.startWeek = Math.max(1, Math.round(task.startWeek * scale));
+                            task.endWeek = Math.min(totalYears, Math.round(task.endWeek * scale));
+                        });
+                    });
+                    
+                    data.totalWeeks = totalYears;
+                }
+            }
+            return data;
+        }
+        
+        // Check for explicit year mentions (e.g., "10 years", "5-year")
+        const yearsMatch = lowerInstructions.match(/(\d+)\s*-?\s*years?/i);
+        if (yearsMatch && data.interval !== 'year') {
+            const years = parseInt(yearsMatch[1]);
+            if (years >= 3) { // Only for 3+ years
+                console.warn(`AI used interval="${data.interval}" but user specified ${years} years. Correcting to "year"`);
+                data.interval = 'year';
+                
+                if (data.totalWeeks !== years) {
+                    const scale = years / data.totalWeeks;
+                    data.phases.forEach(phase => {
+                        phase.tasks.forEach(task => {
+                            task.startWeek = Math.max(1, Math.round(task.startWeek * scale));
+                            task.endWeek = Math.min(years, Math.round(task.endWeek * scale));
+                        });
+                    });
+                    data.totalWeeks = years;
+                }
+            }
+            return data;
+        }
+        
+        // Check for month mentions
+        const monthsMatch = lowerInstructions.match(/(\d+)\s*-?\s*months?/i);
+        if (monthsMatch && data.interval !== 'month') {
+            const months = parseInt(monthsMatch[1]);
+            if (months >= 6) { // Only for 6+ months
+                console.warn(`AI used interval="${data.interval}" but user specified ${months} months. Correcting to "month"`);
+                data.interval = 'month';
+                
+                if (data.totalWeeks !== months) {
+                    const scale = months / data.totalWeeks;
+                    data.phases.forEach(phase => {
+                        phase.tasks.forEach(task => {
+                            task.startWeek = Math.max(1, Math.round(task.startWeek * scale));
+                            task.endWeek = Math.min(months, Math.round(task.endWeek * scale));
+                        });
+                    });
+                    data.totalWeeks = months;
+                }
+            }
+            return data;
+        }
+        
+        return data;
+    }
+
+    /**
      * Formats document contents for the prompt
      */
     private formatDocuments(documents: string[]): string {
@@ -273,7 +357,12 @@ Generate the Gantt chart data now:`;
             }
 
             // Parse and return the result
-            return this.parseResponse(fullResponse);
+            const data = this.parseResponse(fullResponse);
+            
+            // Post-process: Override interval if AI didn't detect it correctly
+            const correctedData = this.correctIntervalIfNeeded(data, userInstructions);
+            
+            return correctedData;
 
         } catch (error: unknown) {
             if (error && typeof error === 'object' && 'code' in error) {
