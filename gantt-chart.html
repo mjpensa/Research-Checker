@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gantt Chart for App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #5a5a5a;
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 40px;
+        }
+
+        .gantt-chart {
+            display: grid;
+            grid-template-columns: 250px repeat(8, 1fr);
+            gap: 0;
+            border: 1px solid #ddd;
+        }
+
+        .header-cell {
+            background: #e3f2fd;
+            padding: 15px;
+            text-align: center;
+            font-weight: 600;
+            color: #1976d2;
+            border-right: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .phase-header {
+            background: #d0d0d0;
+            padding: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 14px;
+            color: #666;
+            border-right: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+            grid-column: span 9;
+        }
+
+        .phase-header.planning {
+            color: #1976d2;
+        }
+
+        .phase-header.design {
+            color: #f57c00;
+        }
+
+        .phase-header.development {
+            color: #ff5722;
+        }
+
+        .phase-header.launch {
+            color: #00bfa5;
+        }
+
+        .task-cell {
+            background: white;
+            padding: 15px;
+            border-right: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .week-cell {
+            background: #fafafa;
+            border-right: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+            position: relative;
+            min-height: 50px;
+            padding: 10px 5px;
+        }
+
+        .bar {
+            height: 30px;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .bar.planning {
+            background: #2196f3;
+        }
+
+        .bar.design {
+            background: #ff9800;
+        }
+
+        .bar.development {
+            background: #ff5722;
+        }
+
+        .bar.launch {
+            background: #00bfa5;
+        }
+
+        /* Week column spans */
+        .w1 { grid-column: 2; }
+        .w2 { grid-column: 3; }
+        .w3 { grid-column: 4; }
+        .w4 { grid-column: 5; }
+        .w5 { grid-column: 6; }
+        .w6 { grid-column: 7; }
+        .w7 { grid-column: 8; }
+        .w8 { grid-column: 9; }
+
+        .task-row {
+            display: contents;
+        }
+
+        /* Bar positioning and widths */
+        .bar-w1-w2 {
+            left: 0;
+            width: 100%;
+            grid-column: 2 / 4;
+        }
+
+        .bar-w2-w4 {
+            left: 0;
+            width: 100%;
+            grid-column: 3 / 5;
+        }
+
+        .bar-w3-w5 {
+            left: 0;
+            width: 100%;
+            grid-column: 4 / 6;
+        }
+
+        .bar-w4-w5 {
+            left: 0;
+            width: 100%;
+            grid-column: 5 / 6;
+        }
+
+        .bar-w3-w6 {
+            left: 0;
+            width: 100%;
+            grid-column: 4 / 7;
+        }
+
+        .bar-w4-w6 {
+            left: 0;
+            width: 100%;
+            grid-column: 5 / 7;
+        }
+
+        .bar-w5-w8 {
+            left: 0;
+            width: 100%;
+            grid-column: 6 / 9;
+        }
+
+        .bar-w3-w7 {
+            left: 0;
+            width: 100%;
+            grid-column: 4 / 8;
+        }
+
+        .bar-w6-w7 {
+            left: 0;
+            width: 100%;
+            grid-column: 7 / 8;
+        }
+
+        .bar-w6-w8 {
+            left: 0;
+            width: 100%;
+            grid-column: 7 / 9;
+        }
+
+        .bar-w7-w8 {
+            left: 0;
+            width: 100%;
+            grid-column: 8 / 9;
+        }
+
+        .bar-container {
+            position: relative;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gantt Chart for App</h1>
+        
+        <div class="gantt-chart">
+            <!-- Header Row -->
+            <div class="header-cell" style="background: #d0d0d0;"></div>
+            <div class="header-cell">W1</div>
+            <div class="header-cell">W2</div>
+            <div class="header-cell">W3</div>
+            <div class="header-cell">W4</div>
+            <div class="header-cell">W5</div>
+            <div class="header-cell">W6</div>
+            <div class="header-cell">W7</div>
+            <div class="header-cell">W8</div>
+
+            <!-- PLANNING Phase -->
+            <div class="phase-header planning">PLANNING</div>
+            
+            <!-- Project Assessment -->
+            <div class="task-cell">Project Assessment</div>
+            <div class="week-cell"><div class="bar planning"></div></div>
+            <div class="week-cell"><div class="bar planning"></div></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+
+            <!-- Feasibility Check -->
+            <div class="task-cell">Feasibility Check</div>
+            <div class="week-cell"></div>
+            <div class="week-cell"><div class="bar planning"></div></div>
+            <div class="week-cell"><div class="bar planning"></div></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+
+            <!-- DESIGN Phase -->
+            <div class="phase-header design">DESIGN</div>
+
+            <!-- Wireframe -->
+            <div class="task-cell">Wireframe</div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"><div class="bar design"></div></div>
+            <div class="week-cell"><div class="bar design"></div></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+
+            <!-- Mock-up + Review -->
+            <div class="task-cell">Mock-up + Review</div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"><div class="bar design"></div></div>
+            <div class="week-cell"><div class="bar design"></div></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+
+            <!-- DEVELOPMENT Phase -->
+            <div class="phase-header development">DEVELOPMENT</div>
+
+            <!-- Technical Stack Research -->
+            <div class="task-cell">Technical Stack Research</div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+
+            <!-- Pages Development -->
+            <div class="task-cell">Pages Development</div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+
+            <!-- Login/Signup Feature -->
+            <div class="task-cell">Login/Signup Feature</div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+
+            <!-- Combining Pages & Login -->
+            <div class="task-cell">Combining Pages & Login</div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+            <div class="week-cell"><div class="bar development"></div></div>
+            <div class="week-cell"></div>
+
+            <!-- LAUNCH Phase -->
+            <div class="phase-header launch">LAUNCH</div>
+
+            <!-- Review + Refine -->
+            <div class="task-cell">Review + Refine</div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"><div class="bar launch"></div></div>
+            <div class="week-cell"><div class="bar launch"></div></div>
+
+            <!-- Packaging Source File -->
+            <div class="task-cell">Packaging Source File</div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"><div class="bar launch"></div></div>
+            <div class="week-cell"><div class="bar launch"></div></div>
+
+            <!-- Launch App -->
+            <div class="task-cell">Lauch App</div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"></div>
+            <div class="week-cell"><div class="bar launch"></div></div>
+        </div>
+    </div>
+</body>
+</html>

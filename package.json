@@ -1,0 +1,45 @@
+{
+  "name": "gantt-chart-generator",
+  "displayName": "AI-Powered Gantt Chart Generator",
+  "description": "Generate customized Gantt charts from research documents using AI",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0",
+    "node": ">=18.0.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gantt-chart.generate",
+        "title": "Generate Gantt Chart from Documents"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "dev": "tsx watch src/server.ts",
+    "start": "node out/server.js",
+    "build": "tsc -p ./"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
