@@ -12,7 +12,7 @@ TEMPLATE REFERENCE:
 The Gantt chart should maintain this exact visual style:
 - Clean grid layout with phases and tasks
 - Color-coded phases (planning=blue, design=orange, development=red, launch=green, testing=purple, research=gray, deployment=green, review=light-blue)
-- Tasks aligned to specific week ranges
+- Tasks aligned to specific time interval ranges
 - Professional business aesthetic
 
 USER INSTRUCTIONS:
@@ -27,6 +27,7 @@ You must respond with ONLY valid JSON matching this exact structure (no addition
 {
   "title": "Project Title Here",
   "totalWeeks": 8,
+  "interval": "week",
   "phases": [
     {
       "name": "Phase Name",
@@ -43,16 +44,33 @@ You must respond with ONLY valid JSON matching this exact structure (no addition
   ]
 }
 
-RULES:
+CRITICAL RULES FOR TIME INTERVAL SELECTION:
+1. You MUST intelligently determine the appropriate time interval based on the project horizon
+2. Choose "interval" value from: "week", "month", or "year"
+3. INTERVAL SELECTION GUIDELINES:
+   - Use "week" for projects spanning up to 6 months (1-26 intervals)
+   - Use "month" for projects spanning 6 months to 3 years (6-36 intervals)
+   - Use "year" for projects spanning more than 3 years (3-20 intervals)
+4. If user explicitly mentions duration (e.g., "10 years", "6 months", "8 weeks"), use that to determine interval
+5. If no explicit duration, infer from:
+   - Keywords like "long-term", "strategic" → likely months or years
+   - Mentions of "quarters", "fiscal year" → months
+   - Short project phases → weeks
+   - Research phases, product development cycles → analyze complexity
+6. The "totalWeeks" field represents the total number of intervals (despite the name)
+7. The startWeek and endWeek fields represent interval positions (despite the names)
+
+ADDITIONAL RULES:
 1. Analyze the documents to identify key project phases and tasks
-2. Create realistic timelines based on task complexity
+2. Create realistic timelines based on task complexity and chosen interval
 3. Use appropriate phase names and colorClass values: planning, design, development, launch, testing, research, deployment, review
-4. Weeks are numbered starting from 1
+4. Intervals are numbered starting from 1
 5. Tasks can overlap within and across phases
 6. Each phase should have 2-5 tasks typically
-7. Total weeks should be appropriate for the project scope (typically 4-12 weeks)
+7. Total intervals should be appropriate for the project scope
 8. Task names should be clear and action-oriented
 9. Consider dependencies and logical sequencing
+10. Ensure the interval choice makes the chart readable (typically 8-50 intervals total)
 
 Generate the Gantt chart data now:`;
     }
@@ -96,6 +114,14 @@ Generate the Gantt chart data now:`;
 
         if (!data.totalWeeks || typeof data.totalWeeks !== 'number' || data.totalWeeks < 1) {
             throw new Error('Missing or invalid totalWeeks');
+        }
+
+        // Validate interval field
+        if (!data.interval) {
+            // Default to 'week' for backward compatibility
+            data.interval = 'week';
+        } else if (!['week', 'month', 'year'].includes(data.interval)) {
+            throw new Error(`Invalid interval: ${data.interval}. Must be 'week', 'month', or 'year'`);
         }
 
         if (!Array.isArray(data.phases) || data.phases.length === 0) {
@@ -183,9 +209,11 @@ Generate the Gantt chart data now:`;
             // Parse and return the result
             return this.parseResponse(fullResponse);
 
-        } catch (error) {
-            if (error instanceof vscode.LanguageModelError) {
-                throw new Error(`Language model error: ${error.message}`);
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'code' in error) {
+                // This is a LanguageModelError
+                const lmError = error as vscode.LanguageModelError;
+                throw new Error(`Language model error: ${lmError.message}`);
             }
             if (error instanceof Error) {
                 throw error;

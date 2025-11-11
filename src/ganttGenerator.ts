@@ -1,4 +1,4 @@
-import { GanttChartData, GanttPhase, GanttTask } from './types';
+import { GanttChartData, GanttPhase, GanttTask, TimeInterval } from './types';
 
 export class GanttChartGenerator {
     private readonly colorScheme = {
@@ -13,7 +13,7 @@ export class GanttChartGenerator {
     };
 
     public generateHTML(data: GanttChartData): string {
-        const weeks = this.generateWeekHeaders(data.totalWeeks);
+        const intervals = this.generateIntervalHeaders(data.totalWeeks, data.interval);
         const phaseRows = data.phases.map(phase => this.generatePhaseRows(phase, data.totalWeeks)).join('\n');
 
         return `<!DOCTYPE html>
@@ -115,7 +115,7 @@ export class GanttChartGenerator {
         <div class="gantt-chart">
             <!-- Header Row -->
             <div class="header-cell" style="background: #d0d0d0;"></div>
-            ${weeks}
+            ${intervals}
 
             ${phaseRows}
         </div>
@@ -124,12 +124,27 @@ export class GanttChartGenerator {
 </html>`;
     }
 
-    private generateWeekHeaders(totalWeeks: number): string {
+    private generateIntervalHeaders(totalIntervals: number, interval: TimeInterval): string {
         let headers = '';
-        for (let i = 1; i <= totalWeeks; i++) {
-            headers += `<div class="header-cell">W${i}</div>\n            `;
+        const prefix = this.getIntervalPrefix(interval);
+        
+        for (let i = 1; i <= totalIntervals; i++) {
+            headers += `<div class="header-cell">${prefix}${i}</div>\n            `;
         }
         return headers.trim();
+    }
+
+    private getIntervalPrefix(interval: TimeInterval | string): string {
+        switch (interval) {
+            case 'week':
+                return 'W';
+            case 'month':
+                return 'M';
+            case 'year':
+                return 'Y';
+            default:
+                return 'W';
+        }
     }
 
     private generatePhaseRows(phase: GanttPhase, totalWeeks: number): string {
