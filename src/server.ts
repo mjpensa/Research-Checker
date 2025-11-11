@@ -294,12 +294,59 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 async function generateWithOpenAI(instructions: string, documents: string[]): Promise<GanttChartData> {
-    const apiKey = process.env.OPENAI_API_KEY;
+    // Try Google Gemini first, fall back to OpenAI
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
     
-    if (!apiKey) {
-        throw new Error('OPENAI_API_KEY environment variable not set');
+    if (geminiKey) {
+        return generateWithGemini(instructions, documents, geminiKey);
+    } else if (openaiKey) {
+        return generateWithOpenAIAPI(instructions, documents, openaiKey);
+    } else {
+        throw new Error('No API key configured. Set GEMINI_API_KEY or OPENAI_API_KEY in Railway environment variables.');
+    }
+}
+
+async function generateWithGemini(instructions: string, documents: string[], apiKey: string): Promise<GanttChartData> {
+    const prompt = buildPrompt(instructions, documents);
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            contents: [{
+                parts: [{
+                    text: prompt
+                }]
+            }],
+            generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 2048,
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Google Gemini API error: ${response.statusText} - ${error}`);
     }
 
+    const data = await response.json();
+    const content = data.candidates[0].content.parts[0].text;
+    
+    // Extract JSON from markdown code blocks if present
+    let jsonText = content.trim();
+    const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/) || jsonText.match(/```\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+        jsonText = jsonMatch[1];
+    }
+    
+    return JSON.parse(jsonText);
+}
+
+async function generateWithOpenAIAPI(instructions: string, documents: string[], apiKey: string): Promise<GanttChartData> {
     const prompt = buildPrompt(instructions, documents);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
