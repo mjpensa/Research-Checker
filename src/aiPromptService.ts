@@ -358,9 +358,11 @@ Generate the Gantt chart data now:`;
 
             // Parse and return the result
             const data = this.parseResponse(fullResponse);
+            console.log('AI generated data:', JSON.stringify(data, null, 2));
             
             // Post-process: Override interval if AI didn't detect it correctly
             const correctedData = this.correctIntervalIfNeeded(data, userInstructions);
+            console.log('After correction:', JSON.stringify(correctedData, null, 2));
             
             return correctedData;
 
