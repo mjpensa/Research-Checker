@@ -13,8 +13,8 @@ export class GanttChartGenerator {
     };
 
     public generateHTML(data: GanttChartData): string {
-    const intervals = this.generateIntervalHeaders(data.totalWeeks, data.interval);
-    const phaseRows = data.phases.map(phase => this.generatePhaseRows(phase, data.totalWeeks, data.interval)).join('\n');
+    const intervals = this.generateIntervalHeaders(data.totalIntervals, data.interval);
+    const phaseRows = data.phases.map(phase => this.generatePhaseRows(phase, data.totalIntervals, data.interval)).join('\n');
 
         return `<!DOCTYPE html>
 <html lang="en">
@@ -40,7 +40,7 @@ export class GanttChartGenerator {
             padding: 40px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            max-width: ${Math.max(1400, 250 + data.totalWeeks * 100)}px;
+            max-width: ${Math.max(1400, 250 + data.totalIntervals * 100)}px;
             margin: 0 auto;
         }
 
@@ -54,7 +54,7 @@ export class GanttChartGenerator {
 
         .gantt-chart {
             display: grid;
-            grid-template-columns: 250px repeat(${data.totalWeeks}, 1fr);
+            grid-template-columns: 250px repeat(${data.totalIntervals}, 1fr);
             gap: 0;
             border: 1px solid #ddd;
         }
@@ -78,7 +78,7 @@ export class GanttChartGenerator {
             color: #666;
             border-right: 1px solid #ddd;
             border-bottom: 1px solid #ddd;
-            grid-column: span ${data.totalWeeks + 1};
+            grid-column: span ${data.totalIntervals + 1};
         }
 
         .task-cell {
@@ -149,7 +149,7 @@ export class GanttChartGenerator {
         }
     }
 
-    private generatePhaseRows(phase: GanttPhase, totalWeeks: number, interval: TimeInterval): string {
+    private generatePhaseRows(phase: GanttPhase, totalIntervals: number, interval: TimeInterval): string {
         const colorKey = this.getColorKey(phase.colorClass);
         const colors = this.colorScheme[colorKey] || this.colorScheme.planning;
         
@@ -160,10 +160,10 @@ export class GanttChartGenerator {
             html += `\n            <!-- ${task.name} -->\n`;
             html += `            <div class="task-cell">${this.escapeHtml(task.name)}</div>\n`;
             
-            for (let week = 1; week <= totalWeeks; week++) {
-                const hasBar = week >= task.startWeek && week <= task.endWeek;
+            for (let i = 1; i <= totalIntervals; i++) {
+                const hasBar = i >= task.startInterval && i <= task.endInterval;
                 if (hasBar) {
-                    html += `            <div class="week-cell" title="${this.escapeHtml(task.name)} (${this.getIntervalPrefix(interval)}${task.startWeek}-${this.getIntervalPrefix(interval)}${task.endWeek})"><div class="bar ${phase.colorClass}"></div></div>\n`;
+                    html += `            <div class="week-cell" title="${this.escapeHtml(task.name)} (${this.getIntervalPrefix(interval)}${task.startInterval}-${this.getIntervalPrefix(interval)}${task.endInterval})"><div class="bar ${phase.colorClass}"></div></div>\n`;
                 } else {
                     html += `            <div class="week-cell"></div>\n`;
                 }
