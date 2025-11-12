@@ -1,4 +1,4 @@
-export type TimeInterval = 'week' | 'month' | 'year';
+export type TimeInterval = 'week' | 'month' | 'quarter' | 'year';
 
 export interface GanttTask {
     name: string;

@@ -1,16 +1,17 @@
-# Intelligent Time Interval Feature
+# Intelligent Time Interval & Scaling Feature
 
 ## Overview
-The Gantt Chart Generator now intelligently adjusts timeline intervals (weeks, months, or years) based on the project horizon. This enhancement ensures that charts remain readable and appropriately scaled regardless of project duration.
+The Gantt Chart Generator now intelligently adjusts timeline intervals (weeks, months, quarters, or years) based on the project horizon and semantic cues present in both your prompt and research documents. This ensures charts remain readable and appropriately scaled regardless of project duration.
 
 ## How It Works
 
 ### Automatic Interval Selection
-The AI analyzes your project requirements and automatically selects the most appropriate time interval:
+The AI analyzes your project requirements and research documents to select the most appropriate time unit:
 
-- **Weeks**: Projects up to 6 months (1-26 intervals)
-- **Months**: Projects from 6 months to 3 years (6-36 intervals)
-- **Years**: Projects longer than 3 years (3-20 intervals)
+- **Weeks**: Projects < ~6 months or prompts mentioning sprints/iterations
+- **Months**: 6–8 month projects, or 9–23 month detailed timelines when month-level granularity is explicitly requested
+- **Quarters**: 2–5 year roadmaps, quarterly plans, fiscal year breakdowns (e.g., Q1–Q4)
+- **Years**: 5+ year strategic / transformation initiatives, decade-scale programs
 
 ### Inference Logic
 The system infers the appropriate interval from:
@@ -22,7 +23,7 @@ The system infers the appropriate interval from:
 
 2. **Contextual Keywords**
    - "long-term", "strategic" → likely months or years
-   - "quarters", "fiscal year" → months
+   - "quarters", "fiscal year" → quarters (or years if 6+ year range)
    - "sprint", "iteration" → weeks
 
 3. **Content Analysis**
@@ -43,6 +44,12 @@ Result: Timeline displayed in weeks (W1, W2, W3...)
 "Generate a Gantt chart for a product development cycle over 18 months"
 ```
 Result: Timeline displayed in months (M1, M2, M3...)
+
+### Quarterly Roadmap (Quarters)
+```
+"Build a roadmap from 2025–2027 focusing on quarterly execution with Q1–Q4 milestones"
+```
+Result: Timeline displayed in quarters (Q1, Q2 ... Q12)
 
 ### Long-term Project (Years)
 ```
@@ -87,7 +94,7 @@ The `GanttChartData` interface now includes:
 {
   title: string;
   totalWeeks: number;  // Total number of intervals (despite the name)
-  interval: "week" | "month" | "year";  // The time unit
+   interval: "week" | "month" | "quarter" | "year";  // The time unit
   phases: GanttPhase[];
 }
 ```
@@ -95,7 +102,7 @@ The `GanttChartData` interface now includes:
 ### Backward Compatibility
 - Charts without the `interval` field default to "week"
 - Existing charts continue to work without modification
-- The `startWeek` and `endWeek` fields are used generically for all interval types
+- The `startWeek` and `endWeek` fields are used generically for all interval types (week/month/quarter/year)
 
 ## Benefits
 
@@ -104,3 +111,4 @@ The `GanttChartData` interface now includes:
 3. **Professional Output**: Industry-standard interval conventions
 4. **Flexibility**: Handles any project duration from weeks to decades
 5. **Intelligence**: No manual configuration required
+6. **Quarter Support**: Clean scaling for mid-range multi-year projects

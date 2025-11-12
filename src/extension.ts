@@ -88,8 +88,9 @@ async function generateGanttChart(context: vscode.ExtensionContext) {
         );
 
         // Show interval info to user
-        const intervalLabel = ganttData!.interval === 'year' ? 'Years' : 
-                            ganttData!.interval === 'month' ? 'Months' : 'Weeks';
+    const intervalLabel = ganttData!.interval === 'year' ? 'Years' : 
+                ganttData!.interval === 'quarter' ? 'Quarters' :
+                ganttData!.interval === 'month' ? 'Months' : 'Weeks';
         console.log(`Generated chart with ${ganttData!.totalWeeks} ${intervalLabel} (interval: ${ganttData!.interval})`);
 
         // Step 4: Generate HTML

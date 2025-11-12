@@ -13,8 +13,8 @@ export class GanttChartGenerator {
     };
 
     public generateHTML(data: GanttChartData): string {
-        const intervals = this.generateIntervalHeaders(data.totalWeeks, data.interval);
-        const phaseRows = data.phases.map(phase => this.generatePhaseRows(phase, data.totalWeeks)).join('\n');
+    const intervals = this.generateIntervalHeaders(data.totalWeeks, data.interval);
+    const phaseRows = data.phases.map(phase => this.generatePhaseRows(phase, data.totalWeeks, data.interval)).join('\n');
 
         return `<!DOCTYPE html>
 <html lang="en">
@@ -140,14 +140,16 @@ export class GanttChartGenerator {
                 return 'W';
             case 'month':
                 return 'M';
+            case 'quarter':
+                return 'Q';
             case 'year':
                 return 'Y';
             default:
-                return 'W';
+                return 'I';
         }
     }
 
-    private generatePhaseRows(phase: GanttPhase, totalWeeks: number): string {
+    private generatePhaseRows(phase: GanttPhase, totalWeeks: number, interval: TimeInterval): string {
         const colorKey = this.getColorKey(phase.colorClass);
         const colors = this.colorScheme[colorKey] || this.colorScheme.planning;
         
@@ -161,7 +163,7 @@ export class GanttChartGenerator {
             for (let week = 1; week <= totalWeeks; week++) {
                 const hasBar = week >= task.startWeek && week <= task.endWeek;
                 if (hasBar) {
-                    html += `            <div class="week-cell"><div class="bar ${phase.colorClass}"></div></div>\n`;
+                    html += `            <div class="week-cell" title="${this.escapeHtml(task.name)} (${this.getIntervalPrefix(interval)}${task.startWeek}-${this.getIntervalPrefix(interval)}${task.endWeek})"><div class="bar ${phase.colorClass}"></div></div>\n`;
                 } else {
                     html += `            <div class="week-cell"></div>\n`;
                 }
